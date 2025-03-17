@@ -1,6 +1,7 @@
 # amcrest
 Example of how to use the Amcrest Camera CGI API
 
+```
 CLI for Amcrest Cameras
 Usage amcrest -cmd [a command, see below]
 
@@ -28,3 +29,4 @@ cmds:
        gettime - Displays camera's current time
        settime - Sets the cameras current time to our system time
        getinfo - Gets Camera System Info
+```
