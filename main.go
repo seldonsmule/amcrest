@@ -6,6 +6,7 @@ import (
   "flag"
   "time"
   "os"
+  "bufio"
   "io/ioutil"
   "encoding/base64"
   "github.com/seldonsmule/simpleconffile"
@@ -23,6 +24,18 @@ type Configuration struct {
   Passwd string
   Filename string
   Encrypted bool
+
+}
+
+type Parms struct {
+
+  cmdPtr *string 
+  useridPtr *string
+  passwdPtr *string
+  confPtr *string
+  urlPtr *string
+  urlfilePtr *string 
+  bdebugPtr *bool
 
 }
 
@@ -59,6 +72,10 @@ func help(){
   fmt.Println("       gettime - Displays camera's current time")
   fmt.Println("       settime - Sets the cameras current time to our system time")
   fmt.Println("       getinfo - Gets Camera System Info")
+  fmt.Println("       getnet - Gets Camera Basic Network")
+  fmt.Println("       getntp - Gets Camera System NTP settings")
+  fmt.Println("       ntpenable - Turn on using NTP")
+  fmt.Println("       ntpdisable - Turn off using NTP")
 
 
 }
@@ -177,6 +194,24 @@ func settime(url string) bool{
   return true
 }
 
+func getnet(url string) bool{
+
+  camera_url := fmt.Sprintf("%s/cgi-bin/configManager.cgi?action=getConfig&name=Network", url)
+
+  fmt.Printf("full url: %s\n", camera_url)
+
+  rtnstr, bworked := send(camera_url, gMyconf.Userid, gMyconf.Passwd)
+
+  if(!bworked){
+    fmt.Println("Send failed")
+    return false
+  }else{
+    fmt.Println(rtnstr)
+  }
+
+  return true
+}
+
 func getinfo(url string) bool{
 
   fmt.Printf("Getting Camera System Info [%s]\n", url)
@@ -197,66 +232,184 @@ func getinfo(url string) bool{
   return true
 }
 
+func getntp(url string) bool{
 
-func main(){
+  fmt.Printf("Getting Camera NTP Config [%s]\n", url)
+
+  camera_url := fmt.Sprintf("%s/cgi-bin/configManager.cgi?action=getConfig&name=NTP", url)
+
+  fmt.Printf("full url: %s\n", camera_url)
+
+  rtnstr, bworked := send(camera_url, gMyconf.Userid, gMyconf.Passwd)
+
+  if(!bworked){
+    fmt.Println("Send failed")
+    return false
+  }else{
+    fmt.Println(rtnstr)
+  }
+
+  return true
+}
+
+func setntponoff(url string, on bool) bool{
+
+  if(on){
+    fmt.Print("Enabling NTP ");
+  }else{
+    fmt.Print("Disabling NTP ");
+  }
+
+  fmt.Printf("Camera NTP Config [%s]\n", url)
 
 
-  logmsg.SetLogFile("amcrest.log")
+  camera_url := fmt.Sprintf("%s/cgi-bin/configManager.cgi?action=setConfig&NTP.Enable=%t", url, on)
 
-  cmdPtr := flag.String("cmd", "help", "Command to run")
-  useridPtr := flag.String("userid", "notset", "Amcrest userid")
-  passwdPtr := flag.String("passwd", "notset", "Amcrest password")
-  confPtr := flag.String("conffile", ".amcrest.conf", "config file name")
-  urlPtr := flag.String("url", "http://localhost", "URL (IP) of the camera")
-  bdebugPtr := flag.Bool("debug", false, "If true, do debug magic")
+  fmt.Printf("full url: %s\n", camera_url)
 
-  flag.Parse()
+  rtnstr, bworked := send(camera_url, gMyconf.Userid, gMyconf.Passwd)
 
-  logmsg.Print(logmsg.Info, "cmdPtr = ", *cmdPtr)
-  logmsg.Print(logmsg.Info, "useridPtr = ", *useridPtr)
-  logmsg.Print(logmsg.Info, "passwdPtr = ", *passwdPtr)
-  logmsg.Print(logmsg.Info, "confPtr = ", *confPtr)
-  logmsg.Print(logmsg.Info, "urlPtr = ", *urlPtr)
-  logmsg.Print(logmsg.Info, "bdebugPtr = ", *bdebugPtr)
+  if(!bworked){
+    fmt.Println("Send failed")
+    return false
+  }else{
+    fmt.Println(rtnstr)
+  }
 
-  switch *cmdPtr {
+  return true
+}
+
+func printparms(parms Parms){
+
+  fmt.Println("cmdPtr = ", *parms.cmdPtr)
+  fmt.Println("useridPtr = ", *parms.useridPtr)
+  fmt.Println("passwdPtr = ", *parms.passwdPtr)
+  fmt.Println("confPtr = ", *parms.confPtr)
+  fmt.Println("urlPtr = ", *parms.urlPtr)
+  fmt.Println("urlfilePtr = ", *parms.urlfilePtr)
+  fmt.Println("bdebugPtr = ", *parms.bdebugPtr)
+
+}
+
+func submain(parms Parms) bool{
+
+  switch *parms.cmdPtr {
 
     case "readconf":
       fmt.Println("Reading conf file")
-      readconf(*confPtr)
+      readconf(*parms.confPtr)
       Dump()
 
     case "setconf":
       fmt.Println("Setting conf file")
 
 
-      simple := simpleconffile.New(COMPILE_IN_KEY, *confPtr)
+      simple := simpleconffile.New(COMPILE_IN_KEY, *parms.confPtr)
 
 
       gMyconf.Encrypted = true
-      gMyconf.Userid = simple.EncryptString(*useridPtr)
-      gMyconf.Passwd = simple.EncryptString(*passwdPtr)
-      gMyconf.Filename = *confPtr
+      gMyconf.Userid = simple.EncryptString(*parms.useridPtr)
+      gMyconf.Passwd = simple.EncryptString(*parms.passwdPtr)
+      gMyconf.Filename = *parms.confPtr
 
       simple.SaveConf(gMyconf)
 
     case "gettime":
-      readconf(*confPtr)
-      gettime(*urlPtr)
+      readconf(*parms.confPtr)
+      gettime(*parms.urlPtr)
     
     case "settime":
-      readconf(*confPtr)
-      settime(*urlPtr)
+      readconf(*parms.confPtr)
+      settime(*parms.urlPtr)
     
     case "getinfo":
-      readconf(*confPtr)
-      getinfo(*urlPtr)
+      readconf(*parms.confPtr)
+      getinfo(*parms.urlPtr)
+
+    case "getnet":
+      readconf(*parms.confPtr)
+      getnet(*parms.urlPtr)
+
+    case "getntp":
+      readconf(*parms.confPtr)
+      getntp(*parms.urlPtr)
+
+    case "ntpenable":
+      readconf(*parms.confPtr)
+      setntponoff(*parms.urlPtr, true)
+
+    case "ntpdisable":
+      readconf(*parms.confPtr)
+      setntponoff(*parms.urlPtr, false)
 
     default:
       help()
       os.Exit(2)
 
   }
+
+  return true
+}
+
+
+func main(){
+
+  var ourParms Parms
+
+  logmsg.SetLogFile("amcrest.log")
+
+  ourParms.cmdPtr = flag.String("cmd", "help", "Command to run")
+  ourParms.useridPtr = flag.String("userid", "notset", "Amcrest userid")
+  ourParms.passwdPtr = flag.String("passwd", "notset", "Amcrest password")
+  ourParms.confPtr = flag.String("conffile", ".amcrest.conf", "config file name")
+  ourParms.urlPtr = flag.String("url", "http://localhost", "URL (IP) of the camera")
+  ourParms.urlfilePtr = flag.String("urlfile", "notset", "File of URLs (IPs) of the cameras")
+  ourParms.bdebugPtr = flag.Bool("debug", false, "If true, do debug magic")
+
+  flag.Parse()
+
+
+  if(*ourParms.urlfilePtr == "notset"){
+    submain(ourParms)
+  }else{
+  
+    fmt.Printf("Processing file [%s] of URLs\n", *ourParms.urlfilePtr)
+
+    file, err := os.Open(*ourParms.urlfilePtr)
+
+    if err != nil {
+      fmt.Println(err)
+      return
+    }
+
+    defer file.Close()
+  
+    // Create a scanner
+    scanner := bufio.NewScanner(file)
+
+    var url string
+
+    // Read and print lines
+    for scanner.Scan() {
+      line := scanner.Text()
+
+      if(line[0] == '#'){
+        continue
+      }
+
+
+      if(line[0:4] == "http"){
+        url = line
+      }else{
+        url = "http://" + line
+      }
+
+      fmt.Printf("%s\n", url)
+      ourParms.urlPtr = &url
+      submain(ourParms)
+    }
+
+  } //end if using an inputfile
 
 
   os.Exit(0)
