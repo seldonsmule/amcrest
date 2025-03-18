@@ -35,6 +35,7 @@ type Parms struct {
   confPtr *string
   urlPtr *string
   urlfilePtr *string 
+  ptzpresetPtr *string 
   bdebugPtr *bool
 
 }
@@ -78,6 +79,7 @@ func help(){
   fmt.Println("       ntpdisable - Turn off using NTP")
   fmt.Println("       getptzstatus - Get Ptz Status info")
   fmt.Println("       getptzconfig - Get Ptz Config info")
+  fmt.Println("       ptzgoto - Send PTZ to preset number location")
 
 
 }
@@ -160,7 +162,7 @@ func gettime(url string) bool{
 
 func getptzstatus(url string) bool{
 
-  fmt.Printf("Getting Camera Time from [%s]\n", url)
+  fmt.Printf("Getting Camera PTZ Status from [%s]\n", url)
 
   camera_url := fmt.Sprintf("%s/cgi-bin/ptz.cgi?action=getStatus", url)
 
@@ -178,9 +180,29 @@ func getptzstatus(url string) bool{
   return true
 }
 
+func ptzgoto(url string, ptzpreset string) bool{
+
+  fmt.Printf("Sending PTZ to a preset location [%s]\n", url)
+
+  camera_url := fmt.Sprintf("%s/cgi-bin/ptz.cgi?action=start&channel=0&code=GotoPreset&arg1=0&arg2=%s&arg3=0&arg4=0", url, ptzpreset)
+
+  fmt.Printf("full url: %s\n", camera_url)
+
+  rtnstr, bworked := send(camera_url, gMyconf.Userid, gMyconf.Passwd)
+
+  if(!bworked){
+    fmt.Println("Send failed")
+    return false
+  }else{
+    fmt.Println(rtnstr)
+  }
+
+  return true
+}
+
 func getptzconfig(url string) bool{
 
-  fmt.Printf("Getting Camera Time from [%s]\n", url)
+  fmt.Printf("Getting Camera PTZ Config from [%s]\n", url)
 
   camera_url := fmt.Sprintf("%s/cgi-bin/configManager.cgi?action=getConfig&name=Ptz", url)
 
@@ -329,6 +351,7 @@ func printparms(parms Parms){
   fmt.Println("confPtr = ", *parms.confPtr)
   fmt.Println("urlPtr = ", *parms.urlPtr)
   fmt.Println("urlfilePtr = ", *parms.urlfilePtr)
+  fmt.Println("ptzpresetPtr = ", *parms.ptzpresetPtr)
   fmt.Println("bdebugPtr = ", *parms.bdebugPtr)
 
 }
@@ -392,6 +415,10 @@ func submain(parms Parms) bool{
       readconf(*parms.confPtr)
       getptzconfig(*parms.urlPtr)
 
+    case "ptzgoto":
+      readconf(*parms.confPtr)
+      ptzgoto(*parms.urlPtr, *parms.ptzpresetPtr)
+
     default:
       help()
       os.Exit(2)
@@ -414,6 +441,7 @@ func main(){
   ourParms.confPtr = flag.String("conffile", ".amcrest.conf", "config file name")
   ourParms.urlPtr = flag.String("url", "http://localhost", "URL (IP) of the camera")
   ourParms.urlfilePtr = flag.String("urlfile", "notset", "File of URLs (IPs) of the cameras")
+  ourParms.ptzpresetPtr = flag.String("ptzpreset", "1", "Go to a preset number default is 1, which is Home")
   ourParms.bdebugPtr = flag.Bool("debug", false, "If true, do debug magic")
 
   flag.Parse()
