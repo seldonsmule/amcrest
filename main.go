@@ -76,6 +76,8 @@ func help(){
   fmt.Println("       getntp - Gets Camera System NTP settings")
   fmt.Println("       ntpenable - Turn on using NTP")
   fmt.Println("       ntpdisable - Turn off using NTP")
+  fmt.Println("       getptzstatus - Get Ptz Status info")
+  fmt.Println("       getptzconfig - Get Ptz Config info")
 
 
 }
@@ -141,6 +143,46 @@ func gettime(url string) bool{
   fmt.Printf("Getting Camera Time from [%s]\n", url)
 
   camera_url := fmt.Sprintf("%s/cgi-bin/global.cgi?action=getCurrentTime", url)
+
+  fmt.Printf("full url: %s\n", camera_url)
+
+  rtnstr, bworked := send(camera_url, gMyconf.Userid, gMyconf.Passwd)
+
+  if(!bworked){
+    fmt.Println("Send failed")
+    return false
+  }else{
+    fmt.Println(rtnstr)
+  }
+
+  return true
+}
+
+func getptzstatus(url string) bool{
+
+  fmt.Printf("Getting Camera Time from [%s]\n", url)
+
+  camera_url := fmt.Sprintf("%s/cgi-bin/ptz.cgi?action=getStatus", url)
+
+  fmt.Printf("full url: %s\n", camera_url)
+
+  rtnstr, bworked := send(camera_url, gMyconf.Userid, gMyconf.Passwd)
+
+  if(!bworked){
+    fmt.Println("Send failed")
+    return false
+  }else{
+    fmt.Println(rtnstr)
+  }
+
+  return true
+}
+
+func getptzconfig(url string) bool{
+
+  fmt.Printf("Getting Camera Time from [%s]\n", url)
+
+  camera_url := fmt.Sprintf("%s/cgi-bin/configManager.cgi?action=getConfig&name=Ptz", url)
 
   fmt.Printf("full url: %s\n", camera_url)
 
@@ -342,6 +384,14 @@ func submain(parms Parms) bool{
       readconf(*parms.confPtr)
       setntponoff(*parms.urlPtr, false)
 
+    case "getptzstatus":
+      readconf(*parms.confPtr)
+      getptzstatus(*parms.urlPtr)
+
+    case "getptzconfig":
+      readconf(*parms.confPtr)
+      getptzconfig(*parms.urlPtr)
+
     default:
       help()
       os.Exit(2)
@@ -370,6 +420,17 @@ func main(){
 
 
   if(*ourParms.urlfilePtr == "notset"){
+
+      url := *ourParms.urlPtr
+
+      if(url[0:4] != "http"){
+        url = "http://" + *ourParms.urlPtr
+        ourParms.urlPtr = &url
+      }
+
+      fmt.Printf("%s\n", *ourParms.urlPtr)
+
+
     submain(ourParms)
   }else{
   
