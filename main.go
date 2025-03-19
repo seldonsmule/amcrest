@@ -37,6 +37,7 @@ type Parms struct {
   urlfilePtr *string 
   ptzpresetPtr *string 
   bdebugPtr *bool
+  rundirPtr *string
 
 }
 
@@ -79,6 +80,7 @@ func help(){
   fmt.Println("       ntpdisable - Turn off using NTP")
   fmt.Println("       getptzstatus - Get Ptz Status info")
   fmt.Println("       getptzconfig - Get Ptz Config info")
+  fmt.Println("       getgeneral - Get general information")
   fmt.Println("       ptzgoto - Send PTZ to preset number location")
 
 
@@ -165,6 +167,26 @@ func getptzstatus(url string) bool{
   fmt.Printf("Getting Camera PTZ Status from [%s]\n", url)
 
   camera_url := fmt.Sprintf("%s/cgi-bin/ptz.cgi?action=getStatus", url)
+
+  fmt.Printf("full url: %s\n", camera_url)
+
+  rtnstr, bworked := send(camera_url, gMyconf.Userid, gMyconf.Passwd)
+
+  if(!bworked){
+    fmt.Println("Send failed")
+    return false
+  }else{
+    fmt.Println(rtnstr)
+  }
+
+  return true
+}
+
+func getgeneral(url string) bool{
+
+  fmt.Printf("Getting Camera General Info from [%s]\n", url)
+
+  camera_url := fmt.Sprintf("%s/cgi-bin/configManager.cgi?action=getConfig&name=General", url)
 
   fmt.Printf("full url: %s\n", camera_url)
 
@@ -415,6 +437,10 @@ func submain(parms Parms) bool{
       readconf(*parms.confPtr)
       getptzconfig(*parms.urlPtr)
 
+    case "getgeneral":
+      readconf(*parms.confPtr)
+      getgeneral(*parms.urlPtr)
+
     case "ptzgoto":
       readconf(*parms.confPtr)
       ptzgoto(*parms.urlPtr, *parms.ptzpresetPtr)
@@ -433,7 +459,6 @@ func main(){
 
   var ourParms Parms
 
-  logmsg.SetLogFile("amcrest.log")
 
   ourParms.cmdPtr = flag.String("cmd", "help", "Command to run")
   ourParms.useridPtr = flag.String("userid", "notset", "Amcrest userid")
@@ -443,9 +468,13 @@ func main(){
   ourParms.urlfilePtr = flag.String("urlfile", "notset", "File of URLs (IPs) of the cameras")
   ourParms.ptzpresetPtr = flag.String("ptzpreset", "1", "Go to a preset number default is 1, which is Home")
   ourParms.bdebugPtr = flag.Bool("debug", false, "If true, do debug magic")
+  ourParms.rundirPtr = flag.String("rundir", "./", "Directory to run within")
 
   flag.Parse()
 
+  os.Chdir(*ourParms.rundirPtr)
+
+  logmsg.SetLogFile("amcrest.log")
 
   if(*ourParms.urlfilePtr == "notset"){
 
